@@ -31,11 +31,13 @@ export const addGmailAccount = async (req: Request, res: Response) => {
             return;
         }
 
-        const hashedPassword = await bcrypt.hash(password, 10);
+        // Later in Future secure method of storing passwords in encrypted format is coming soon!!!
+        // const hashedPassword = await bcrypt.hash(password, 10);
 
         const newGmailAccount = {
             email,
-            password: hashedPassword,
+            // password: hashedPassword,
+            password,
             description,
         };
 
@@ -68,7 +70,6 @@ export const addGmailAccount = async (req: Request, res: Response) => {
 
 export const searchGmailAccount = async (req: Request, res: Response) => {
     const userId = (req as any).user.userId;
-    // const email = req.query.email as string;
     const { email } = req.body;
 
     try {
@@ -78,15 +79,6 @@ export const searchGmailAccount = async (req: Request, res: Response) => {
             return;
         }
 
-        // let gmailAccount = null;
-        // user.data.forEach((dataEntry: any) => {
-        //     if (dataEntry.category === 'gmail') {
-        //         gmailAccount = dataEntry.data.gmailAccounts.find(
-        //             (account: any) => account.email === email
-        //         );
-        //     }
-        // });
-
         let gmailAccounts: any[] = [];
 
         user.data.forEach((dataEntry: any) => {
@@ -94,12 +86,19 @@ export const searchGmailAccount = async (req: Request, res: Response) => {
                 const matchingAccounts = dataEntry.data.gmailAccounts.filter(
                     (account: any) => account.email.includes(email) // Checks if email contains the search string
                 );
-                gmailAccounts.push(...matchingAccounts); // Add matching accounts to the result array
+
+                // Map through matching accounts and include the original password
+                const accountsWithOriginalPassword = matchingAccounts.map((account: any) => ({
+                    ...account.toObject(), // Convert Mongoose document to plain object
+                    originalPassword: account.originalPassword, // Include the original password
+                }));
+
+                gmailAccounts.push(...accountsWithOriginalPassword); // Add matching accounts to the result array
             }
         });
 
-        if (!gmailAccounts) {
-            res.status(404).json({ message: 'Gmail account not found' });
+        if (gmailAccounts.length === 0) {
+            res.status(404).json({ message: 'No matching Gmail accounts found' });
             return;
         }
 
