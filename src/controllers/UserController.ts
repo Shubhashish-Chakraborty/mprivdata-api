@@ -8,7 +8,7 @@ import { JWT_USER_SECRET } from '../config';
 const signupValidationSchema = z.object({
     fullName: z.string().min(1, { message: 'FullName is required' }),
     username: z.string().min(1, { message: "username is Required" }),
-    contactNumber: z.number(),
+    contactNumber: z.number().int().gte(1000000000).lte(9999999999),
     password: z.string().min(2, { message: 'Password must be at least 6 characters long' }), // later increase the minimum 
 });
 
