@@ -167,3 +167,53 @@ export const removeGmailAccount = async (req: Request, res: Response) => {
         res.status(500).json({ message: 'Error removing Gmail account', error });
     }
 };
+
+export const updateGmailAccount = async (req: Request, res: Response) => {
+    const userId = (req as any).user.userId;
+    const { gmailAccountId } = req.body;
+
+    try {
+        const result = gmailAccountValidationSchema.safeParse(req.body);
+
+        // If validation fails, return an error
+        if (!result.success) {
+            res.status(400).json({
+                message: 'Validation error',
+                errors: result.error.flatten().fieldErrors,
+            });
+            return;
+        }
+
+        const { email, password, description } = result.data;
+        const user = await UserModel.findById(userId);
+        if (!user) {
+            res.status(404).json({ message: 'User not found' });
+            return;
+        }
+
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        let isUpdated = false;
+        user.data.forEach((dataEntry: any) => {
+            if (dataEntry.category === 'gmail') {
+                const gmailAccount = dataEntry.data.gmailAccounts.id(gmailAccountId);
+                if (gmailAccount) {
+                    gmailAccount.email = email || gmailAccount.email;
+                    gmailAccount.password = hashedPassword || gmailAccount.password;
+                    gmailAccount.description = description || gmailAccount.description;
+                    isUpdated = true;
+                }
+            }
+        });
+
+        if (!isUpdated) {
+            res.status(404).json({ message: 'Gmail account not found' });
+            return;
+        }
+
+        await user.save();
+        res.status(200).json({ message: 'Gmail account updated successfully', user });
+    } catch (error) {
+        res.status(500).json({ message: 'Error updating Gmail account', error });
+    }
+};
