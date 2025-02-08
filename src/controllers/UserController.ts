@@ -55,7 +55,7 @@ export const SignIn = async (req: Request, res: Response) => {
     try {
         const { username, password } = req.body;
 
-        // Step 1: Find the user by email
+        // Step 1: Find the user by username
         const user = await UserModel.findOne({ username });
         if (!user) {
             res.status(404).json({ message: 'User not found' });
