@@ -5,7 +5,7 @@ import bcrypt from 'bcrypt';
 
 const gmailAccountValidationSchema = z.object({
     email: z.string().email({ message: 'Invalid email address' }),
-    password: z.string().min(2, { message: 'Password must be at least 6 characters long' }), // later increase the minimum 
+    password: z.string().min(6, { message: 'Password must be at least 6 characters long' }), 
     description: z.string().max(100),
 });
 
@@ -190,7 +190,8 @@ export const updateGmailAccount = async (req: Request, res: Response) => {
             return;
         }
 
-        const hashedPassword = await bcrypt.hash(password, 10);
+        // For now not storing encrypted password, soon it will be implemented!
+        // const hashedPassword = await bcrypt.hash(password, 10);
 
         let isUpdated = false;
         user.data.forEach((dataEntry: any) => {
@@ -198,7 +199,7 @@ export const updateGmailAccount = async (req: Request, res: Response) => {
                 const gmailAccount = dataEntry.data.gmailAccounts.id(gmailAccountId);
                 if (gmailAccount) {
                     gmailAccount.email = email || gmailAccount.email;
-                    gmailAccount.password = hashedPassword || gmailAccount.password;
+                    gmailAccount.password = password || gmailAccount.password;
                     gmailAccount.description = description || gmailAccount.description;
                     isUpdated = true;
                 }
