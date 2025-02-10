@@ -32,7 +32,7 @@ const UserSchema = new mongoose.Schema(
                     ],
                     otherAccounts: [
                         {
-                            title: { type: String, required: true }, // Title for the custom data
+                            accountName: { type: String, required: true }, // Title for the custom data
                             username: { type: String }, // Optional username/email
                             password: { type: String }, // Encrypted password
                             description: { type: String }, // Optional description

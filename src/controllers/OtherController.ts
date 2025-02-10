@@ -2,18 +2,18 @@ import { Request, Response } from 'express';
 import { UserModel } from '../models/User';
 import { z } from 'zod';
 
-const socialMediaAccountValidation = z.object({
+const otherAccountValidation = z.object({
     accountName: z.string(),
     username: z.string(),
     password: z.string().min(6, { message: 'Password must be at least 6 characters long' }), 
     description: z.string().max(100),
 });
 
-export const addSocialMediaAccount = async (req: Request, res: Response) => {
+export const addOtherAccount = async (req: Request, res: Response) => {
     const userId = (req as any).user.userId;
 
     try {
-        const result = socialMediaAccountValidation.safeParse(req.body);
+        const result = otherAccountValidation.safeParse(req.body);
 
         // If validation fails, return an error
         if (!result.success) {
@@ -34,7 +34,7 @@ export const addSocialMediaAccount = async (req: Request, res: Response) => {
         // Later in Future secure method of storing passwords in encrypted format is coming soon!!!
         // const hashedPassword = await bcrypt.hash(password, 10);
 
-        const newSocialMediaAccount = {
+        const newOtherAccount = {
             accountName,
             username,
             // password: hashedPassword,
@@ -42,34 +42,34 @@ export const addSocialMediaAccount = async (req: Request, res: Response) => {
             description,
         };
 
-        // Check if a 'social' category already exists in the user's data
-        const socialDataEntry = user.data.find((dataEntry: any) => dataEntry.category === 'social');
+        // Check if a 'other' category already exists in the user's data
+        const otherDataEntry = user.data.find((dataEntry: any) => dataEntry.category === 'other');
 
-        if (socialDataEntry) {
-            // If the 'social' category exists, push the new Social Media account into the socialAccounts array
-            socialDataEntry.data?.socialAccounts.push(newSocialMediaAccount);
+        if (otherDataEntry) {
+            // If the 'other' category exists, push the new account into the otherAccounts array
+            otherDataEntry.data?.otherAccounts.push(newOtherAccount);
         } else {
-            // If the 'social' category doesn't exist, create a new data entry
+            // If the 'other' category doesn't exist, create a new data entry
             user.data.push({
                 userId: user._id, // Connects the data to this user
-                category: 'social',
+                category: 'other',
                 data: {
                     gmailAccounts: [],
-                    socialAccounts: [newSocialMediaAccount],
-                    otherAccounts: [],
+                    socialAccounts: [],
+                    otherAccounts: [newOtherAccount],
                     texts: [],
                 },
             });
         }
 
         await user.save();
-        res.status(201).json({ message: 'Social Media Account Added Successfully', user });
+        res.status(201).json({ message: 'Account Added Successfully', user });
     } catch (error) {
-        res.status(500).json({ message: 'Error adding Social Media account', error });
+        res.status(500).json({ message: 'Error adding the Account', error });
     }
 };
 
-export const searchSocialMediaAccount = async (req: Request, res: Response) => {
+export const searchOtherAccount = async (req: Request, res: Response) => {
     const userId = (req as any).user.userId;
     const { accountName } = req.body; // Here Search by Either AccountName or by username
 
@@ -80,11 +80,11 @@ export const searchSocialMediaAccount = async (req: Request, res: Response) => {
             return;
         }
 
-        let socialAccounts: any[] = [];
+        let otherAccounts: any[] = [];
 
         user.data.forEach((dataEntry: any) => {
-            if (dataEntry.category === 'social') {
-                const matchingAccounts = dataEntry.data.socialAccounts.filter(
+            if (dataEntry.category === 'other') {
+                const matchingAccounts = dataEntry.data.otherAccounts.filter(
                     (account: any) => account.accountName.includes(accountName) // Checks if email contains the search string
                 );
 
@@ -94,22 +94,22 @@ export const searchSocialMediaAccount = async (req: Request, res: Response) => {
                     originalPassword: account.originalPassword, // Include the original password
                 }));
 
-                socialAccounts.push(...accountsWithOriginalPassword); // Add matching accounts to the result array
+                otherAccounts.push(...accountsWithOriginalPassword); // Add matching accounts to the result array
             }
         });
 
-        if (socialAccounts.length === 0) {
-            res.status(404).json({ message: 'No matching Social Media accounts found' });
+        if (otherAccounts.length === 0) {
+            res.status(404).json({ message: 'No matching accounts found' });
             return;
         }
 
-        res.status(200).json({ socialAccounts });
+        res.status(200).json({ otherAccounts });
     } catch (error) {
-        res.status(500).json({ message: 'Error searching for Socal Media account', error });
+        res.status(500).json({ message: 'Error searching for Account', error });
     }
 };
 
-export const allSocialMediaAccount = async (req: Request, res: Response) => {
+export const allOtherAccount = async (req: Request, res: Response) => {
     const userId = (req as any).user.userId;
 
     try {
@@ -119,23 +119,22 @@ export const allSocialMediaAccount = async (req: Request, res: Response) => {
             return;
         }
 
-        let socialAccounts: any[] = [];
+        let otherAccounts: any[] = [];
         user.data.forEach((dataEntry: any) => {
-            if (dataEntry.category === 'social') {
-                socialAccounts = dataEntry.data.socialAccounts;
+            if (dataEntry.category === 'other') {
+                otherAccounts = dataEntry.data.otherAccounts;
             }
         });
 
-        res.status(200).json({ socialAccounts });
+        res.status(200).json({ otherAccounts });
     } catch (error) {
-        res.status(500).json({ message: 'Error fetching Social Media accounts', error });
+        res.status(500).json({ message: 'Error fetching the accounts', error });
     }
 };
 
-export const removeSocialMediaAccount = async (req: Request, res: Response) => {
+export const removeOtherAccount = async (req: Request, res: Response) => {
     const userId = (req as any).user.userId;
-    // const socialMediaAccountId = req.params.id;
-    const { socialAccountId } = req.body;
+    const { otherAccountId } = req.body;
 
     try {
         const user = await UserModel.findById(userId);
@@ -146,33 +145,33 @@ export const removeSocialMediaAccount = async (req: Request, res: Response) => {
 
         let isRemoved = false;
         user.data.forEach((dataEntry: any) => {
-            if (dataEntry.category === 'social') {
-                const socialAccount = dataEntry.data.socialAccounts.id(socialAccountId);
-                if (socialAccount) {
-                    dataEntry.data.socialAccounts.pull(socialAccountId);
+            if (dataEntry.category === 'other') {
+                const otherAccount = dataEntry.data.otherAccounts.id(otherAccountId);
+                if (otherAccount) {
+                    dataEntry.data.otherAccounts.pull(otherAccountId);
                     isRemoved = true;
                 }
             }
         });
 
         if (!isRemoved) {
-            res.status(404).json({ message: 'Social Media account not found' });
+            res.status(404).json({ message: 'Account not found' });
             return;
         }
 
         await user.save();
-        res.status(200).json({ message: 'Social Media account removed successfully', user });
+        res.status(200).json({ message: 'Account removed successfully', user });
     } catch (error) {
-        res.status(500).json({ message: 'Error removing Social Media account', error });
+        res.status(500).json({ message: 'Error removing account', error });
     }
 };
 
-export const updateSocialMediaAccount = async (req: Request, res: Response) => {
+export const updateOtherAccount = async (req: Request, res: Response) => {
     const userId = (req as any).user.userId;
-    const { socialAccountId } = req.body;
+    const { otherAccountId } = req.body;
 
     try {
-        const result = socialMediaAccountValidation.safeParse(req.body);
+        const result = otherAccountValidation.safeParse(req.body);
 
         // If validation fails, return an error
         if (!result.success) {
@@ -195,26 +194,26 @@ export const updateSocialMediaAccount = async (req: Request, res: Response) => {
 
         let isUpdated = false;
         user.data.forEach((dataEntry: any) => {
-            if (dataEntry.category === 'social') {
-                const socialAccount = dataEntry.data.socialAccounts.id(socialAccountId);
-                if (socialAccount) {
-                    socialAccount.accountName = accountName || socialAccount.accountName;
-                    socialAccount.username = username || socialAccount.username;
-                    socialAccount.password = password || socialAccount.password;
-                    socialAccount.description = description || socialAccount.description;
+            if (dataEntry.category === 'other') {
+                const otherAccount = dataEntry.data.otherAccounts.id(otherAccountId);
+                if (otherAccount) {
+                    otherAccount.accountName = accountName || otherAccount.accountName;
+                    otherAccount.username = username || otherAccount.username;
+                    otherAccount.password = password || otherAccount.password;
+                    otherAccount.description = description || otherAccount.description;
                     isUpdated = true;
                 }
             }
         });
 
         if (!isUpdated) {
-            res.status(404).json({ message: 'Social Media account not found' });
+            res.status(404).json({ message: 'Account not found' });
             return;
         }
 
         await user.save();
-        res.status(200).json({ message: 'Social Media account updated successfully', user });
+        res.status(200).json({ message: 'Account updated successfully', user });
     } catch (error) {
-        res.status(500).json({ message: 'Error updating Social Media account', error });
+        res.status(500).json({ message: 'Error updating Account', error });
     }
 };

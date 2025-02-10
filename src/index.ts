@@ -6,6 +6,7 @@ import { PORT , MONGO_URL } from "./config";
 import { UserRouter } from "./routes/UserRoutes";
 import { GmailRouter } from "./routes/GmailRoutes";
 import { SocialMediaRouter } from "./routes/SocialRoutes";
+import { otherAccountRouter } from "./routes/OtherRoutes";
 
 const app = express();
 
@@ -15,6 +16,7 @@ app.use(cors());
 app.use("/api/auth/user" , UserRouter);
 app.use("/api/data/gmail" , GmailRouter);
 app.use("/api/data/social" , SocialMediaRouter);
+app.use("/api/data/other" , otherAccountRouter);
 
 app.get("/" , (req , res) => {
     res.send("API is up!!")
