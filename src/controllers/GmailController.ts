@@ -1,7 +1,8 @@
 import { Request, Response } from 'express';
 import { UserModel } from '../models/User';
 import { z } from 'zod';
-import bcrypt from 'bcrypt';
+import { decrypt, encrypt } from '../utils/encrypt_decrypt';
+
 
 const gmailAccountValidationSchema = z.object({
     email: z.string().email({ message: 'Invalid email address' }),
@@ -31,13 +32,12 @@ export const addGmailAccount = async (req: Request, res: Response) => {
             return;
         }
 
-        // Later in Future secure method of storing passwords in encrypted format is coming soon!!!
-        // const hashedPassword = await bcrypt.hash(password, 10);
+        // Encrypt the password
+        const encryptedPassword = encrypt(password);
 
         const newGmailAccount = {
             email,
-            // password: hashedPassword,
-            password,
+            password: encryptedPassword,
             description,
         };
 
@@ -87,13 +87,13 @@ export const searchGmailAccount = async (req: Request, res: Response) => {
                     (account: any) => account.email.includes(email) // Checks if email contains the search string
                 );
 
-                // Map through matching accounts and include the original password
-                const accountsWithOriginalPassword = matchingAccounts.map((account: any) => ({
+                // Decrypt the password for each matching account
+                const accountsWithDecryptedPassword = matchingAccounts.map((account: any) => ({
                     ...account.toObject(), // Convert Mongoose document to plain object
-                    originalPassword: account.originalPassword, // Include the original password
+                    password: decrypt(account.password), // Decrypt the password
                 }));
 
-                gmailAccounts.push(...accountsWithOriginalPassword); // Add matching accounts to the result array
+                gmailAccounts.push(...accountsWithDecryptedPassword); // Add matching accounts to the result array
             }
         });
 
@@ -122,7 +122,13 @@ export const allGmailAccount = async (req: Request, res: Response) => {
         let gmailAccounts: any[] = [];
         user.data.forEach((dataEntry: any) => {
             if (dataEntry.category === 'gmail') {
-                gmailAccounts = dataEntry.data.gmailAccounts;
+                // Decrypting the password for each Gmail account
+                const accountsWithDecryptedPassword = dataEntry.data.gmailAccounts.map((account: any) => ({
+                    ...account.toObject(), // Converting Mongoose document to plain object
+                    password: decrypt(account.password), // Decrypting the password
+                }));
+
+                gmailAccounts.push(...accountsWithDecryptedPassword);
             }
         });
 
@@ -190,8 +196,8 @@ export const updateGmailAccount = async (req: Request, res: Response) => {
             return;
         }
 
-        // For now not storing encrypted password, soon it will be implemented!
-        // const hashedPassword = await bcrypt.hash(password, 10);
+        // Encrypt the password
+        const encryptedPassword = encrypt(password);
 
         let isUpdated = false;
         user.data.forEach((dataEntry: any) => {
@@ -199,7 +205,7 @@ export const updateGmailAccount = async (req: Request, res: Response) => {
                 const gmailAccount = dataEntry.data.gmailAccounts.id(gmailAccountId);
                 if (gmailAccount) {
                     gmailAccount.email = email || gmailAccount.email;
-                    gmailAccount.password = password || gmailAccount.password;
+                    gmailAccount.password = encryptedPassword || gmailAccount.password; // Update with encrypted password
                     gmailAccount.description = description || gmailAccount.description;
                     isUpdated = true;
                 }
