@@ -1,14 +1,15 @@
 import { z } from 'zod';
-import bcrypt from "bcrypt";
 import jwt from 'jsonwebtoken';
 import { Request, Response } from 'express';
 import { UserModel } from '../models/User';
 import { JWT_USER_SECRET } from '../config';
+import { decrypt, encrypt } from '../utils/encrypt_decrypt';
 
 const signupValidationSchema = z.object({
     fullName: z.string().min(1, { message: 'FullName is required' }),
     username: z.string().min(1, { message: "username is Required" }),
     contactNumber: z.number().int().gte(1000000000).lte(9999999999),
+    email: z.string().email(),
     password: z.string().min(2, { message: 'Password must be at least 6 characters long' }), // later increase the minimum 
 });
 
@@ -27,7 +28,7 @@ export const SignUp = async (req: Request, res: Response) => {
             return
         }
 
-        const { fullName, username, contactNumber, password } = result.data;
+        const { fullName, username, contactNumber, email, password } = result.data;
 
         // Check if the user already exists
         const existingUser = await UserModel.findOne({ username });
@@ -37,10 +38,11 @@ export const SignUp = async (req: Request, res: Response) => {
         }
 
         // Hash the password
-        const hashedPassword = await bcrypt.hash(password, 10);
+        // const hashedPassword = await bcrypt.hash(password, 10);
+        const encryptedPassword = encrypt(password);
 
         // Create a new user
-        const user = new UserModel({ fullName, username, contactNumber, password: hashedPassword });
+        const user = new UserModel({ fullName, username, contactNumber, email, password: encryptedPassword });
         await user.save();
 
         // Return success response
@@ -63,7 +65,8 @@ export const SignIn = async (req: Request, res: Response) => {
         }
 
         // Step 2: Compare the password
-        const isPasswordValid = await bcrypt.compare(password, user.password);
+        // const isPasswordValid = await bcrypt.compare(password, user.password);
+        const isPasswordValid = decrypt(user.password);
         if (!isPasswordValid) {
             res.status(401).json({ message: 'Invalid password' });
             return
@@ -88,13 +91,15 @@ interface AuthRequest extends Request {
 export const getUserData = async (req: AuthRequest, res: Response) => {
     try {
         if (!req.user) {
-            return res.status(401).json({ message: 'Unauthorized access' });
+            res.status(401).json({ message: 'Unauthorized access' });
+            return
         }
 
         const user = await UserModel.findById(req.user.userId).select('-password');
 
         if (!user) {
-            return res.status(404).json({ message: 'User not found' });
+            res.status(404).json({ message: 'User not found' });
+            return
         }
 
         res.status(200).json(user);
