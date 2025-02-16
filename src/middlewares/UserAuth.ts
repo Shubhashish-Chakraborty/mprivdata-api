@@ -3,19 +3,21 @@ import jwt from 'jsonwebtoken';
 import { JWT_USER_SECRET } from '../config';
 
 export const UserAuth = (req: Request, res: Response, next: NextFunction) => {
-    const token = req.header('Authorization');
+    const authHeader = req.header('Authorization');
 
-    if (!token) {
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
         res.status(401).json({ message: 'Access denied. No token provided.' });
         return
     }
 
+    const token = authHeader.split(' ')[1]; // Extract token after "Bearer"
+
     try {
-        const decoded = jwt.verify(token, JWT_USER_SECRET as string);
-        (req as any).user = decoded; // Attach user to request
+        const decoded = jwt.verify(token, JWT_USER_SECRET as string) as { userId: string }; // Ensure correct type
+        (req as any).user = decoded; // Attach decoded userId
         next();
     } catch (err) {
-        res.status(400).json({ message: 'Invalid token' });
+        res.status(401).json({ message: 'Unauthorized: Invalid token' });
         return
     }
 };

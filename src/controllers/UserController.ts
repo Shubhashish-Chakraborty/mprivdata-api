@@ -81,15 +81,20 @@ export const SignIn = async (req: Request, res: Response) => {
     }
 };
 
+interface AuthRequest extends Request {
+    user?: { userId: string }; // Define user type
+}
 
-export const getUserData = async (req: Request, res: Response) => {
+export const getUserData = async (req: AuthRequest, res: Response) => {
     try {
-        const userId = (req as any).user.userId; // Type assertion
-        const user = await UserModel.findById(userId).select('-password');
+        if (!req.user) {
+            return res.status(401).json({ message: 'Unauthorized access' });
+        }
+
+        const user = await UserModel.findById(req.user.userId).select('-password');
 
         if (!user) {
-            res.status(404).json({ message: 'User not found' });
-            return
+            return res.status(404).json({ message: 'User not found' });
         }
 
         res.status(200).json(user);
