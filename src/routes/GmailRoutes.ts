@@ -5,7 +5,7 @@ import { UserAuth } from "../middlewares/UserAuth";
 export const GmailRouter = Router();
 
 GmailRouter.post("/add", UserAuth , addGmailAccount);
-GmailRouter.get("/search", UserAuth , searchGmailAccount);
+GmailRouter.post("/search", UserAuth , searchGmailAccount);
 GmailRouter.get("/all", UserAuth , allGmailAccount);
 GmailRouter.delete("/remove", UserAuth , removeGmailAccount);
 GmailRouter.put("/update", UserAuth , updateGmailAccount);
